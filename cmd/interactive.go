@@ -17,8 +17,7 @@ func interactive() {
 	green := color.New(color.FgGreen).Add(color.Bold)
 	yellow := color.New(color.FgYellow).Add(color.Bold)
 
-	fmt.Printf("\n=== Directory Name Generator ===\n\n")
-
+	
 	// Step 1: Tech Stack + Language Selection
 	yellow.Printf("Step 1/4: Select Tech Stack + Language\n")
 
@@ -48,8 +47,7 @@ func interactive() {
 	selectedTechStack := categories.TechStackWords[techStackIdx]
 	selectedTechDesc := strings.Split(selectedTechItem, " - ")[1]
 
-	yellow.Printf("Selected: %s\n\n", selectedTechDesc)
-
+	
 	// Step 2: Framework Selection (filtered by tech stack)
 	yellow.Printf("Step 2/4: Select Framework (%s)\n", selectedTechDesc)
 
@@ -72,17 +70,15 @@ func interactive() {
 		},
 	}
 
-	frameworkIdx, selectedFrameworkItem, err := frameworkPrompt.Run()
+	frameworkIdx, _, err := frameworkPrompt.Run()
 	if err != nil {
 		fmt.Printf("Error selecting framework: %v\n", err)
 		return
 	}
 
 	selectedFramework := availableFrameworks[frameworkIdx]
-	selectedFrameworkDesc := strings.Split(selectedFrameworkItem, " - ")[1]
 
-	yellow.Printf("Selected: %s\n\n", selectedFrameworkDesc)
-
+	
 	// Step 3: Category Selection (removed tech category)
 	yellow.Printf("Step 3/4: Select Category\n")
 
@@ -106,30 +102,22 @@ func interactive() {
 	}
 
 	var selectedCategory string
-	var categoryName string
 	switch categoryIdx {
 	case 0:
 		selectedCategory = "food"
-		categoryName = "Food"
 	case 1:
 		selectedCategory = "animals"
-		categoryName = "Animals"
 	case 2:
 		selectedCategory = "pop"
-		categoryName = "Pop Culture"
 	case 3:
 		selectedCategory = "silly"
-		categoryName = "Silly"
 	case 4:
 		selectedCategory = "dev"
-		categoryName = "Developer-related"
 	case 5:
 		selectedCategory = "all"
-		categoryName = "Random/All"
 	}
 
-	yellow.Printf("Selected: %s\n\n", categoryName)
-
+	
 	// Step 4: Suffix Type Selection
 	yellow.Printf("Step 4/4: Select Suffix Type\n")
 
@@ -209,9 +197,21 @@ func interactive() {
 			continue
 		}
 
-		green.Printf("✓ Created: %s\n", name)
-	}
+		fmt.Printf("\n")
+		green.Printf(" ✓ Created: %s\n", name)
 
-	fmt.Printf("\n%s\n", strings.Repeat("=", 60))
-	green.Printf("Successfully created %d directories!\n", count)
+		// Change into the created directory
+		err = os.Chdir(name)
+		if err != nil {
+			fmt.Printf("⚠️  Could not change directory: %v\n", err)
+		} else {
+			green.Printf(" → Changed into directory: %s\n", name)
+
+			// Generate a script that can be sourced to change the shell's directory
+			fmt.Printf("\n")
+			yellow.Printf("💡 To change your shell's directory, run:\n")
+			yellow.Printf("   cd %s\n", name)
+			fmt.Printf("\n")
+		}
+	}
 }
