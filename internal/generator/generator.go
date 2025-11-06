@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aravindcm49/dir-init/internal/categories"
+	"github.com/aravindcm49/dir-init/internal/utils"
 )
 
 type SuffixType string
@@ -179,6 +180,182 @@ func intPow(base, exp int) int {
 		result *= base
 	}
 	return result
+}
+
+// GenerateSingleName generates a single directory name with the specified category and suffix type
+func (g *Generator) GenerateSingleName(category string, suffixType SuffixType, length int) (string, error) {
+	// Create a temporary config for this single generation
+	tempConfig := Config{
+		Category:      category,
+		SuffixType:    suffixType,
+		SuffixLength:  length,
+		IncludeNumbers: true,
+		UseEmojis:     false,
+		Count:         1,
+		Seed:          g.rand.Int63(),
+	}
+
+	// Create a new generator with this config
+	tempGenerator := &Generator{
+		config: tempConfig,
+		rand:   g.rand,
+	}
+
+	// Generate the name
+	category = tempGenerator.selectCategory()
+	prefix := tempGenerator.selectWordFromCategory(category)
+	suffix := tempGenerator.generateSuffix()
+	name := fmt.Sprintf("%s%s", prefix, suffix)
+
+	// Validate the name
+	if !utils.IsValidDirectoryName(name) {
+		return "", fmt.Errorf("generated name '%s' is not valid for filesystem", name)
+	}
+
+	return name, nil
+}
+
+// CreateDirectory generates and creates a single directory
+func (g *Generator) CreateDirectory(category string, suffixType SuffixType, length int) error {
+	name, err := g.GenerateSingleName(category, suffixType, length)
+	if err != nil {
+		return err
+	}
+
+	err = utils.CreateDirectory(name)
+	if err != nil {
+		return fmt.Errorf("failed to create directory '%s': %v", name, err)
+	}
+
+	return nil
+}
+
+// CreateDirectories generates and creates multiple directories
+func (g *Generator) CreateDirectories(category string, suffixType SuffixType, length, count int) ([]string, error) {
+	if count <= 0 {
+		return nil, fmt.Errorf("count must be positive")
+	}
+
+	if count > 20 {
+		return nil, fmt.Errorf("cannot create more than 20 directories at once")
+	}
+
+	names := make([]string, 0, count)
+	createdNames := make([]string, 0, count)
+
+	for i := 0; i < count; i++ {
+		name, err := g.GenerateSingleName(category, suffixType, length)
+		if err != nil {
+			continue
+		}
+
+		err = utils.CreateDirectory(name)
+		if err != nil {
+			continue
+		}
+
+		names = append(names, name)
+		createdNames = append(createdNames, name)
+	}
+
+	if len(createdNames) == 0 {
+		return nil, fmt.Errorf("failed to create any directories")
+	}
+
+	return createdNames, nil
+}
+
+// GenerateEnhancedName generates names with the new enhanced format: {techstack}-{framework}-{category}-{suffix}
+func (g *Generator) GenerateEnhancedName(techStack, framework, category string, suffixType SuffixType, length int) (string, error) {
+	// Generate prefix part: {techstack}-{framework}
+	prefix := fmt.Sprintf("%s-%s", techStack, framework)
+
+	// Generate category word
+	categoryWord := g.selectWordFromCategory(category)
+
+	// Generate suffix
+	suffix := g.generateSuffixWithConfig(suffixType, length)
+
+	// Combine all parts: {techstack}-{framework}-{categoryword}-{suffix}
+	name := fmt.Sprintf("%s-%s%s", prefix, categoryWord, suffix)
+
+	// Validate the name
+	if !utils.IsValidDirectoryName(name) {
+		return "", fmt.Errorf("generated name '%s' is not valid for filesystem", name)
+	}
+
+	return name, nil
+}
+
+// generateSuffixWithConfig generates suffix with specific configuration
+func (g *Generator) generateSuffixWithConfig(suffixType SuffixType, length int) string {
+	switch suffixType {
+	case SuffixAlpha:
+		return g.generateAlphaSuffixWithLength(length)
+	case SuffixNumeric:
+		return g.generateNumericSuffixWithLength(length)
+	case SuffixMixed:
+		return g.generateMixedSuffixWithLength(length)
+	case SuffixTimestamp:
+		return g.generateTimestampSuffix()
+	default:
+		return g.generateMixedSuffixWithLength(length)
+	}
+}
+
+// generateAlphaSuffixWithLength generates alphabetic suffix with specific length
+func (g *Generator) generateAlphaSuffixWithLength(length int) string {
+	if length < 3 {
+		length = 3
+	} else if length > 8 {
+		length = 8
+	}
+
+	chars := "abcdefghijklmnopqrstuvwxyz"
+	var suffix strings.Builder
+
+	for i := 0; i < length; i++ {
+		suffix.WriteByte(chars[g.rand.Intn(len(chars))])
+	}
+
+	return "-" + suffix.String()
+}
+
+// generateNumericSuffixWithLength generates numeric suffix with specific length
+func (g *Generator) generateNumericSuffixWithLength(length int) string {
+	if length < 1 {
+		length = 1
+	} else if length > 6 {
+		length = 6
+	}
+
+	max := intPow(10, length) - 1
+	min := intPow(10, length-1)
+
+	if length == 1 {
+		min = 0
+	}
+
+	num := g.rand.Intn(max-min+1) + min
+	return fmt.Sprintf("-%d", num)
+}
+
+// generateMixedSuffixWithLength generates mixed suffix with specific length
+func (g *Generator) generateMixedSuffixWithLength(length int) string {
+	if length < 3 {
+		length = 3
+	} else if length > 8 {
+		length = 8
+	}
+
+	chars := "abcdefghijklmnopqrstuvwxyz0123456789"
+	var suffix strings.Builder
+
+	for i := 0; i < length; i++ {
+		suffix.WriteByte(chars[g.rand.Intn(len(chars))])
+	}
+
+	return "-" + suffix.String()
 }
 
 // DefaultConfig returns a default configuration for the generator
