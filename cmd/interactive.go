@@ -6,84 +6,83 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aravindcm49/dir-init/cmd/tui/models"
 	"github.com/aravindcm49/dir-init/internal/categories"
+	"github.com/aravindcm49/dir-init/internal/config"
 	"github.com/aravindcm49/dir-init/internal/generator"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 )
 
 func interactive() {
-	// Initialize color settings
 	green := color.New(color.FgGreen).Add(color.Bold)
 	yellow := color.New(color.FgYellow).Add(color.Bold)
 
-	
-	// Step 1: Tech Stack + Language Selection
+	// Step 1: Tech Stack Selection with Bubble Tea
 	yellow.Printf("Step 1/4: Select Tech Stack + Language\n")
 
-	var techStackItems []string
-	techDescriptions := categories.TechStackDescriptions()
-	for _, code := range categories.TechStackWords {
-		description := techDescriptions[code]
-		techStackItems = append(techStackItems, fmt.Sprintf("%s - %s", code, description))
-	}
+	techItems := buildTechStackItems()
+	techModel := models.NewSelector("", techItems)
 
-	techStackPrompt := promptui.Select{
-		Label: "",
-		Items: techStackItems,
-		Templates: &promptui.SelectTemplates{
-			Active:   "❯ {{ . | cyan }}",
-			Inactive: "  {{ . }}",
-			Selected: "✓ {{ . | green }}",
-		},
-	}
-
-	techStackIdx, selectedTechItem, err := techStackPrompt.Run()
+	p := tea.NewProgram(techModel)
+	finalModel, err := p.Run()
 	if err != nil {
-		fmt.Printf("Error selecting tech stack: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	selectedTechStack := categories.TechStackWords[techStackIdx]
-	selectedTechDesc := strings.Split(selectedTechItem, " - ")[1]
+	m := finalModel.(models.SelectorModel)
+	selectedTech := m.GetSelected()
 
-	
-	// Step 2: Framework Selection (filtered by tech stack)
-	yellow.Printf("Step 2/4: Select Framework (%s)\n", selectedTechDesc)
-
-	var frameworkItems []string
-	frameworkDescriptions := categories.FrameworkDescriptions()
-	availableFrameworks := categories.GetFrameworksForTech(selectedTechStack)
-
-	for _, frameworkCode := range availableFrameworks {
-		description := frameworkDescriptions[frameworkCode]
-		frameworkItems = append(frameworkItems, fmt.Sprintf("%s - %s", frameworkCode, description))
+	if selectedTech == nil {
+		return // User quit
 	}
 
-	frameworkPrompt := promptui.Select{
-		Label: "",
-		Items: frameworkItems,
-		Templates: &promptui.SelectTemplates{
-			Active:   "❯ {{ . | cyan }}",
-			Inactive: "  {{ . }}",
-			Selected: "✓ {{ . | green }}",
-		},
+	// Save if custom and user chose to save
+	if selectedTech.IsCustom && m.ShouldSave() {
+		if err := config.SaveTechStack(selectedTech.Code, selectedTech.Description); err != nil {
+			// Silent fail
+		}
 	}
 
-	frameworkIdx, _, err := frameworkPrompt.Run()
+	selectedTechStack := selectedTech.Code
+	selectedTechDesc := selectedTech.Description
+
+	// Step 2: Framework Selection with Bubble Tea
+	yellow.Printf("\nStep 2/4: Select Framework (%s)\n", selectedTechDesc)
+
+	frameworkItems := buildFrameworkItems(selectedTechStack)
+	frameworkModel := models.NewSelector("", frameworkItems)
+
+	p = tea.NewProgram(frameworkModel)
+	finalModel, err = p.Run()
 	if err != nil {
-		fmt.Printf("Error selecting framework: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	selectedFramework := availableFrameworks[frameworkIdx]
+	fm := finalModel.(models.SelectorModel)
+	selectedFw := fm.GetSelected()
 
-	
-	// Step 3: Category Selection (removed tech category)
-	yellow.Printf("Step 3/4: Select Category\n")
+	if selectedFw == nil {
+		return
+	}
+
+	// Save if custom and user chose to save
+	if selectedFw.IsCustom && fm.ShouldSave() {
+		if err := config.SaveFramework(selectedTechStack, selectedFw.Code, selectedFw.Description); err != nil {
+			// Silent fail
+		}
+	}
+
+	selectedFramework := selectedFw.Code
+
+	// Step 3: Category Selection (using old promptui for now)
+	yellow.Printf("\nStep 3/4: Select Category\n")
 
 	var categoryItems []string
-	categoryItems = append(categoryItems, "1. food", "2. animals", "3. pop", "4. silly", "5. dev", "6. all")
+	categoryItems = append(categoryItems, "1. food", "2. animals", "3. pop", "4. silly", "5. dev", "6. all", "7. custom word (one-time)")
 
 	categoryPrompt := promptui.Select{
 		Label: "",
@@ -92,6 +91,10 @@ func interactive() {
 			Active:   "❯ {{ . | cyan }}",
 			Inactive: "  {{ . }}",
 			Selected: "✓ {{ . | green }}",
+		},
+		Searcher: func(input string, index int) bool {
+			item := categoryItems[index]
+			return strings.Contains(strings.ToLower(item), strings.ToLower(input))
 		},
 	}
 
@@ -102,6 +105,9 @@ func interactive() {
 	}
 
 	var selectedCategory string
+	var customWord string
+	var useCustomWord bool
+
 	switch categoryIdx {
 	case 0:
 		selectedCategory = "food"
@@ -115,24 +121,46 @@ func interactive() {
 		selectedCategory = "dev"
 	case 5:
 		selectedCategory = "all"
+	case 6:
+		// Custom word
+		word, save, err := promptCustomWord()
+		if err != nil {
+			fmt.Printf("Error getting custom word: %v\n", err)
+			return
+		}
+
+		customWord = word
+		useCustomWord = true
+		selectedCategory = "food" // Default category for saving
+
+		if save {
+			if err := config.SaveCategoryWord(selectedCategory, word); err != nil {
+				// Silent fail
+			}
+		}
 	}
 
-	
 	// Step 4: Suffix Type Selection
-	yellow.Printf("Step 4/4: Select Suffix Type\n")
+	yellow.Printf("\nStep 4/4: Select Suffix Type\n")
+
+	suffixItems := []string{
+		"1. alphabetic (abc)",
+		"2. numeric (123)",
+		"3. mixed (a1b2)",
+		"4. timestamp",
+	}
 
 	suffixPrompt := promptui.Select{
 		Label: "",
-		Items: []string{
-			"1. alphabetic (abc)",
-			"2. numeric (123)",
-			"3. mixed (a1b2)",
-			"4. timestamp",
-		},
+		Items: suffixItems,
 		Templates: &promptui.SelectTemplates{
 			Active:   "❯ {{ . | cyan }}",
 			Inactive: "  {{ . }}",
 			Selected: "✓ {{ . | green }}",
+		},
+		Searcher: func(input string, index int) bool {
+			item := suffixItems[index]
+			return strings.Contains(strings.ToLower(item), strings.ToLower(input))
 		},
 	}
 
@@ -181,13 +209,21 @@ func interactive() {
 	}
 
 	// Generate and create directories
-	gen := generator.NewGenerator(generator.DefaultConfig())
-
 	for i := 0; i < count; i++ {
-		name, err := gen.GenerateEnhancedName(selectedTechStack, selectedFramework, selectedCategory, suffixType, 4)
-		if err != nil {
-			fmt.Printf("Error generating name: %v\n", err)
-			continue
+		var name string
+		var err error
+
+		if useCustomWord {
+			// Use custom word directly
+			name = fmt.Sprintf("%s-%s-%s-%s", selectedTechStack, selectedFramework, customWord, generateSimpleSuffix(suffixType))
+		} else {
+			// Generate name normally
+			gen := generator.NewGenerator(generator.DefaultConfig())
+			name, err = gen.GenerateEnhancedName(selectedTechStack, selectedFramework, selectedCategory, suffixType, 4)
+			if err != nil {
+				fmt.Printf("Error generating name: %v\n", err)
+				continue
+			}
 		}
 
 		// Create directory
@@ -198,20 +234,78 @@ func interactive() {
 		}
 
 		fmt.Printf("\n")
-		green.Printf(" ✓ Created: %s\n", name)
+		green.Printf("✓ Created: %s\n", name)
+	}
+}
 
-		// Change into the created directory
-		err = os.Chdir(name)
-		if err != nil {
-			fmt.Printf("⚠️  Could not change directory: %v\n", err)
-		} else {
-			green.Printf(" → Changed into directory: %s\n", name)
+// buildTechStackItems builds the list of tech stack items
+func buildTechStackItems() []models.Item {
+	items := []models.Item{}
 
-			// Generate a script that can be sourced to change the shell's directory
-			fmt.Printf("\n")
-			yellow.Printf("💡 To change your shell's directory, run:\n")
-			yellow.Printf("   cd %s\n", name)
-			fmt.Printf("\n")
+	// Add built-in items
+	techDescriptions := categories.TechStackDescriptions()
+	for _, code := range categories.TechStackWords {
+		items = append(items, models.Item{
+			Code:        code,
+			Description: techDescriptions[code],
+			IsCustom:    false,
+		})
+	}
+
+	// Add custom items from config
+	cfg, _ := config.LoadConfig()
+	for _, ts := range cfg.TechStacks {
+		items = append(items, models.Item{
+			Code:        ts.Code,
+			Description: ts.Description,
+			IsCustom:    false, // Already saved
+		})
+	}
+
+	return items
+}
+
+// buildFrameworkItems builds the list of framework items for a tech stack
+func buildFrameworkItems(techStack string) []models.Item {
+	items := []models.Item{}
+
+	// Add built-in frameworks
+	frameworkDescriptions := categories.FrameworkDescriptions()
+	availableFrameworks := categories.GetFrameworksForTech(techStack)
+
+	for _, code := range availableFrameworks {
+		items = append(items, models.Item{
+			Code:        code,
+			Description: frameworkDescriptions[code],
+			IsCustom:    false,
+		})
+	}
+
+	// Add custom frameworks from config
+	cfg, _ := config.LoadConfig()
+	if cfg.Frameworks[techStack] != nil {
+		for _, fw := range cfg.Frameworks[techStack] {
+			items = append(items, models.Item{
+				Code:        fw.Code,
+				Description: fw.Description,
+				IsCustom:    false, // Already saved
+			})
 		}
+	}
+
+	return items
+}
+
+// generateSimpleSuffix generates a simple suffix for custom words
+func generateSimpleSuffix(suffixType generator.SuffixType) string {
+	switch suffixType {
+	case generator.SuffixAlpha:
+		return "abcd"
+	case generator.SuffixNumeric:
+		return "1234"
+	case generator.SuffixTimestamp:
+		return fmt.Sprintf("%d", os.Getpid()%10000)
+	default:
+		return "a1b2"
 	}
 }
