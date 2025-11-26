@@ -31,13 +31,16 @@ func GetConfigPath() string {
 // LoadConfig loads the user configuration from ~/.dir-init/config.yaml
 func LoadConfig() (*Config, error) {
 	configMutex.RLock()
-	defer configMutex.RUnlock()
-
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		// Return empty config if file doesn't exist
-		return NewConfig(), nil
+		configMutex.RUnlock()
+		// Initialize with defaults if it doesn't exist
+		if err := InitConfig(); err != nil {
+			return nil, fmt.Errorf("failed to initialize config: %w", err)
+		}
+		configMutex.RLock()
 	}
+	defer configMutex.RUnlock()
 
 	// Read config file
 	data, err := os.ReadFile(configPath)
@@ -178,23 +181,156 @@ func SaveCategoryWord(category, word string) error {
 func InitConfig() error {
 	// Check if config already exists
 	if _, err := os.Stat(configPath); err == nil {
-		return fmt.Errorf("config file already exists at %s", configPath)
+		return nil // Already exists, nothing to do
 	}
 
-	// Create example config
-	exampleConfig := &Config{
-		TechStacks: []TechStack{
-			{Code: "mystack", Description: "My Custom Stack"},
+	// Create default config with all values
+	defaultConfig := &Config{
+		Frontends: []Frontend{
+			{Code: "rct", Description: "React"},
+			{Code: "vue", Description: "Vue.js"},
+			{Code: "ng", Description: "Angular"},
+			{Code: "svelte", Description: "Svelte"},
+			{Code: "nxt", Description: "Next.js"},
+			{Code: "nuxt", Description: "Nuxt.js"},
+			{Code: "sol", Description: "Solid"},
+			{Code: "qwik", Description: "Qwik"},
+			{Code: "pre", Description: "Preact"},
+			{Code: "grt", Description: "Gatsby"},
+			{Code: "astro", Description: "Astro"},
+			{Code: "remix", Description: "Remix"},
+			{Code: "html", Description: "HTML/CSS/JS"},
+			{Code: "none", Description: "No Frontend"},
 		},
-		Frameworks: map[string][]Framework{
-			"mystack": {
-				{Code: "myframework", Description: "My Custom Framework"},
-			},
+		Backends: []Backend{
+			{Code: "node", Description: "Node.js"},
+			{Code: "py", Description: "Python"},
+			{Code: "go", Description: "Go"},
+			{Code: "java", Description: "Java"},
+			{Code: "ruby", Description: "Ruby"},
+			{Code: "php", Description: "PHP"},
+			{Code: "rust", Description: "Rust"},
+			{Code: "csharp", Description: "C#"},
+			{Code: "deno", Description: "Deno"},
+			{Code: "bun", Description: "Bun"},
+			{Code: "spring", Description: "Spring Boot"},
+			{Code: "django", Description: "Django"},
+			{Code: "flask", Description: "Flask"},
+			{Code: "fastapi", Description: "FastAPI"},
+			{Code: "express", Description: "Express"},
+			{Code: "nest", Description: "NestJS"},
+			{Code: "rails", Description: "Rails"},
+			{Code: "laravel", Description: "Laravel"},
+			{Code: "none", Description: "No Backend"},
 		},
 		Categories: map[string][]string{
-			"food": {"ramen", "sushi"},
+			"food": {
+				"pizza", "burger", "taco", "pasta", "sushi", "donut", "sandwich", "salad",
+				"soup", "steak", "chicken", "fish", "rice", "noodles", "curry", "stew",
+				"bbq", "kebab", "wrap", "panini", "quesadilla", "burrito", "nachos",
+				"lasagna", "risotto", "paella", "couscous", "tabbouleh", "hummus",
+				"cake", "cupcake", "muffin", "cookie", "brownie", "pie", "icecream",
+				"gelato", "sorbet", "pudding", "flan", "tiramisu", "cheesecake",
+				"croissant", "danish", "eclair", "profiterole", "macaron", "meringue",
+				"lollipop", "candy", "chocolate", "fudge", "toffee", "brittle",
+				"coffee", "tea", "espresso", "latte", "cappuccino", "americano", "mocha",
+				"juice", "smoothie", "milkshake", "soda", "water", "lemonade", "icedtea",
+				"hotchocolate", "chai", "matcha", "boba", "cocktail", "mocktail",
+				"chips", "popcorn", "pretzels", "nuts", "seeds", "crackers", "bread",
+				"cheese", "olives", "pickles", "dips", "salsa", "guacamole", "bruschetta",
+				"canapes", "springrolls", "wings", "onionrings", "fries", "mozzarella",
+				"calamari", "samosas", "pakoras",
+			},
+			"animals": {
+				"penguin", "koala", "dolphin", "eagle", "tiger", "panda", "turtle", "rabbit",
+				"fox", "wolf", "bear", "lion", "otter", "meerkat", "sloth", "hippo",
+				"giraffe", "zebra", "elephant", "rhino", "monkey", "gorilla", "orangutan",
+				"chimpanzee", "lemur", "kangaroo", "wallaby", "wombat", "platypus",
+				"armadillo", "hedgehog", "porcupine", "ferret", "mongoose", "badger",
+				"raccoon", "skunk", "opossum", "coyote", "lynx", "bobcat", "cougar",
+				"parrot", "cockatoo", "macaw", "toucan", "cockatiel", "budgie",
+				"canary", "finch", "sparrow", "robin", "bluejay", "cardinal",
+				"falcon", "hawk", "owl", "vulture", "condor", "flamingo",
+				"pelican", "seagull", "pigeon", "dove", "swan", "goose", "duck",
+				"peacock", "turkey", "quail", "pheasant", "partridge",
+				"shark", "whale", "porpoise", "orca", "beluga", "narwhal",
+				"octopus", "squid", "cuttlefish", "jellyfish", "starfish", "seahorse",
+				"clownfish", "angelfish", "betta", "goldfish", "koi", "tuna", "salmon",
+				"trout", "bass", "catfish", "swordfish", "marlin", "halibut",
+				"butterfly", "moth", "dragonfly", "damselfly", "beetle", "ladybug",
+				"ant", "bee", "wasp", "hornet", "grasshopper", "cricket", "prayingmantis",
+				"spider", "scorpion", "centipede", "millipede", "earthworm", "leech",
+				"slug", "snail", "crayfish", "lobster", "crab", "shrimp", "prawn",
+			},
+			"pop": {
+				"ninja", "samurai", "wizard", "knight", "viking", "pirate", "astronaut",
+				"robot", "superhero", "detective", "warrior", "mage", "sorcerer", "paladin",
+				"ranger", "cleric", "druid", "assassin", "barbarian", "monk", "bard",
+				"healer", "summoner", "elementalist", "chronomancer", "pyromancer",
+				"cryomancer", "geomancer", "aeromancer", "necromancer",
+				"musician", "artist", "painter", "sculptor", "writer", "author", "poet",
+				"dancer", "actor", "director", "producer", "composer", "conductor", "singer",
+				"guitarist", "pianist", "drummer", "violinist", "cellist", "flutist",
+				"photographer", "filmmaker", "videographer", "editor", "designer",
+				"architect", "chef", "baker", "mixologist", "bartender",
+				"pharaoh", "emperor", "king", "queen", "prince", "princess", "duke",
+				"duchess", "baron", "baroness", "squire", "serf", "peasant",
+				"gladiator", "centurion", "legion", "spartan", "athenian", "roman",
+				"norse", "celtic", "greek", "egyptian", "maya", "aztec",
+				"influencer", "blogger", "vlogger", "streamer", "gamer", "esports",
+				"contentcreator", "socialmedia", "tiktok", "instagram", "youtube",
+				"brandambassador", "spokesperson", "representative",
+				"ambassador", "diplomat", "negotiator", "mediator", "arbitrator",
+			},
+			"silly": {
+				"potato", "banana", "unicorn", "noodle", "pickle", "muffin", "cupcake",
+				"cookie", "marshmallow", "popcorn", "cucumber", "broccoli", "carrot",
+				"tomato", "pepper", "onion", "garlic", "ginger", "lettuce", "spinach",
+				"mushroom", "avocado", "papaya", "mango", "kiwi", "pomegranate",
+				"pineapple", "coconut", "watermelon", "honeydew", "cantaloupe", "fig",
+				"date", "prune", "apricot", "peach", "plum", "cherry", "berry",
+				"rubberduck", "sockpuppet", "paperclip", "stapler", "highlighter",
+				"gluestick", "scissors", "ruler", "protractor", "compass", "eraser",
+				"calculator", "abacus", "typewriter", "telegraph", "telephone", "radio",
+				"television", "computer", "keyboard", "mouse", "monitor", "printer",
+				"scanner", "camera", "microphone", "speaker", "headphones", "earbuds",
+				"happy", "sad", "angry", "excited", "nervous", "confused", "surprised",
+				"shocked", "amazed", "bored", "tired", "sleepy", "hungry", "thirsty",
+				"curious", "playful", "goofy", "weird", "strange", "bizarre", "odd",
+				"peculiar", "quirky", "crazy", "wild", "silly", "funny",
+				"hilarious", "comical", "absurd", "ridiculous", "ludicrous",
+				"butterfly", "dragonfly", "firefly", "lightningbug", "ladybug",
+				"jellybean", "poprocks", "cottoncandy", "licorice", "taffy",
+				"gummybear", "chocolatechip", "peanutbutter", "strawberry", "blueberry",
+				"raspberry", "blackberry", "cranberry", "gooseberry", "elderberry",
+			},
+			"dev": {
+				"github", "gitlab", "bitbucket", "mercurial", "svn", "cvs", "perforce",
+				"stash", "source", "repository", "repo", "branch", "trunk", "tag",
+				"commit", "push", "pull", "merge", "rebase", "cherry-pick", "fork",
+				"clone", "remote", "origin", "upstream", "downstream", "head",
+				"master", "main", "develop", "feature", "release", "hotfix",
+				"aws", "gcp", "azure", "heroku", "digitalocean", "linode", "vultr",
+				"cloudflare", "vercel", "netlify", "railway", "flyio", "render",
+				"lambda", "ec2", "gke", "aks", "eks", "compute", "serverless",
+				"container", "vm", "instance", "machine", "node", "pod", "cluster",
+				"react", "vue", "angular", "svelte", "nextjs", "nuxt", "gatsby",
+				"express", "koa", "fastify", "flask", "django", "rails", "laravel",
+				"spring", "symfony", "aspnet", "bun", "bunchee",
+				"webpack", "vite", "rollup", "parcel", "esbuild", "snowpack",
+				"babel", "typescript", "coffeescript", "jsx", "tsx", "sass", "less",
+				"docker", "kubernetes", "helm", "istio", "linkerd", "consul", "etcd",
+				"terraform", "ansible", "puppet", "chef", "saltstack", "fabric",
+				"jenkins", "travis", "circleci", "githubactions", "gitlabci", "bamboo",
+				"gradle", "maven", "npm", "yarn", "pnpm", "pip", "composer", "gem",
+				"brew", "apt", "yum", "dnf", "pacman", "emerge", "pkg",
+				"jest", "cypress", "selenium", "puppeteer", "playwright", "cucumber",
+				"mocha", "jasmine", "qunit", "vitest", "ava", "tape", "chai", "sinon",
+				"eslint", "prettier", "stylelint", "sonarqube", "codeclimate", "coveralls",
+				"codecov", "dependabot", "renovate", "snyk", "githubsecurity",
+			},
 		},
 	}
 
-	return SaveConfig(exampleConfig)
+	return SaveConfig(defaultConfig)
 }

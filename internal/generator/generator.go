@@ -6,27 +6,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aravindcm49/dir-init/internal/categories"
 	"github.com/aravindcm49/dir-init/internal/utils"
 )
 
 type SuffixType string
 
 const (
-	SuffixAlpha      SuffixType = "alpha"
-	SuffixNumeric    SuffixType = "numeric"
-	SuffixMixed      SuffixType = "mixed"
-	SuffixTimestamp  SuffixType = "timestamp"
+	SuffixAlpha     SuffixType = "alpha"
+	SuffixNumeric   SuffixType = "numeric"
+	SuffixMixed     SuffixType = "mixed"
+	SuffixTimestamp SuffixType = "timestamp"
 )
 
 type Config struct {
-	Category        string
-	SuffixType      SuffixType
-	SuffixLength    int
-	IncludeNumbers  bool
-	UseEmojis       bool
-	Count           int
-	Seed            int64
+	Category       string
+	SuffixType     SuffixType
+	SuffixLength   int
+	IncludeNumbers bool
+	UseEmojis      bool
+	Count          int
+	Seed           int64
+	Categories     map[string][]string
 }
 
 type Generator struct {
@@ -75,21 +75,13 @@ func (g *Generator) selectCategory() string {
 func (g *Generator) selectWordFromCategory(category string) string {
 	var words []string
 
-	switch category {
-	case "tech":
-		words = categories.TechWords
-	case "food":
-		words = categories.FoodWords
-	case "animals":
-		words = categories.AnimalWords
-	case "pop":
-		words = categories.PopWords
-	case "silly":
-		words = categories.SillyWords
-	case "dev":
-		words = categories.DevWords
-	default:
-		words = categories.TechWords
+	if g.config.Categories != nil {
+		words = g.config.Categories[category]
+	}
+
+	if len(words) == 0 {
+		// Fallback if category not found or empty
+		return "folder"
 	}
 
 	if len(words) == 0 {
@@ -186,13 +178,13 @@ func intPow(base, exp int) int {
 func (g *Generator) GenerateSingleName(category string, suffixType SuffixType, length int) (string, error) {
 	// Create a temporary config for this single generation
 	tempConfig := Config{
-		Category:      category,
-		SuffixType:    suffixType,
-		SuffixLength:  length,
+		Category:       category,
+		SuffixType:     suffixType,
+		SuffixLength:   length,
 		IncludeNumbers: true,
-		UseEmojis:     false,
-		Count:         1,
-		Seed:          g.rand.Int63(),
+		UseEmojis:      false,
+		Count:          1,
+		Seed:           g.rand.Int63(),
 	}
 
 	// Create a new generator with this config

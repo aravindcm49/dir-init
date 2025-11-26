@@ -104,10 +104,26 @@ func (m SelectorModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.confirmed = true
 			return m, tea.Quit
 		} else if m.searchInput.Value() != "" {
-			// No matches - offer to create custom
+			// No matches - create custom (one-time use)
 			m.customCode = m.searchInput.Value()
-			m.mode = ModeCustomConfirm
-			return m, nil
+			m.saveChoice = 0
+			m.selected = &Item{
+				Code:        m.customCode,
+				Description: m.customCode,
+				IsCustom:    true,
+			}
+			m.confirmed = true
+			return m, tea.Quit
+		}
+
+	case tea.KeyCtrlS:
+		if len(m.filtered) == 0 && m.searchInput.Value() != "" {
+			// No matches - create custom and save to config
+			m.customCode = m.searchInput.Value()
+			m.saveChoice = 1
+			m.mode = ModeCustomInput
+			m.descInput.Focus()
+			return m, textinput.Blink
 		}
 
 	case tea.KeyUp:
@@ -138,14 +154,18 @@ func (m SelectorModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m SelectorModel) updateCustomConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEnter:
-		// Enter = Use once (don't save)
+		// Enter = Use once (don't save) - skip description
 		m.saveChoice = 0
-		m.mode = ModeCustomInput
-		m.descInput.Focus()
-		return m, textinput.Blink
+		m.selected = &Item{
+			Code:        m.customCode,
+			Description: m.customCode, // Use code as description for one-time items
+			IsCustom:    true,
+		}
+		m.confirmed = true
+		return m, tea.Quit
 
 	case tea.KeyCtrlS:
-		// Ctrl+S = Save to config
+		// Ctrl+S = Save to config - ask for description
 		m.saveChoice = 1
 		m.mode = ModeCustomInput
 		m.descInput.Focus()
@@ -202,7 +222,7 @@ func (m *SelectorModel) filterItems() {
 
 // View renders the UI
 func (m SelectorModel) View() string {
-	if m.quitting && !m.confirmed {
+	if m.quitting || m.confirmed {
 		return ""
 	}
 
@@ -233,20 +253,19 @@ func (m SelectorModel) viewSearch() string {
 	// Filtered items
 	if len(m.filtered) == 0 {
 		hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-		s.WriteString(hintStyle.Render("No matches found\n"))
 		if m.searchInput.Value() != "" {
-			s.WriteString(hintStyle.Render("Press Enter to create custom\n"))
+			s.WriteString(hintStyle.Render("No matches found. Press Enter = use once | Ctrl+S = save to config\n"))
 		}
 	} else {
 		for i, item := range m.filtered {
-			cursor := "  "
-			style := lipgloss.NewStyle()
 			if i == m.cursor {
-				cursor = "❯ "
-				style = style.Foreground(lipgloss.Color("86"))
+				selectedItemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Bold(true)
+				s.WriteString(selectedItemStyle.Render("> " + item.Code + " - " + item.Description))
+			} else {
+				itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
+				s.WriteString(itemStyle.Render("  " + item.Code + " - " + item.Description))
 			}
-			line := fmt.Sprintf("%s - %s", item.Code, item.Description)
-			s.WriteString(cursor + style.Render(line) + "\n")
+			s.WriteString("\n")
 		}
 	}
 
