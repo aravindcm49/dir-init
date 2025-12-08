@@ -1,8 +1,14 @@
 # dir-init
 
-A fun Go CLI tool that generates funny, randomized folder names with customizable categories and alphanumeric suffixes.
+A fun Go CLI tool that generates funny, randomized folder names with customizable categories and alphanumeric suffixes. Features an interactive TUI mode for guided directory creation and a powerful config system for customizing your experience.
 
 ## Features
+
+- **Interactive Mode (Default)**:
+  - Beautiful TUI-based interactive flow
+  - Step-by-step guidance: Frontend → Backend → Category → Suffix → Count
+  - Automatically creates directories with enhanced format: `{frontend}-{backend}-{category}-{suffix}`
+  - Example: `rct-node-pizza-a1b2` (React + Node.js + Food category)
 
 - **6 Categories of Funny Names**:
   - Tech & Programming
@@ -12,11 +18,18 @@ A fun Go CLI tool that generates funny, randomized folder names with customizabl
   - Silly & Absurd
   - Developer-related
 
+- **Config System**:
+  - YAML-based configuration at `~/.dir-init/config.yaml`
+  - Customize frontends, backends, tech stacks, frameworks, and category words
+  - Add/remove items via CLI commands
+  - Validate and edit config easily
+
 - **Flexible Generation Options**:
   - Multiple suffix types (alpha, numeric, mixed, timestamp)
   - Configurable suffix length (1-8 characters)
   - Generate multiple names at once
   - Random seed support for reproducible results
+  - Non-interactive `generate` command for name generation only
 
 - **Multiple Output Formats**:
   - Plain text (default)
@@ -80,7 +93,50 @@ If you get "command not found", restart your terminal or run `source ~/.zshrc` (
 
 ## Usage
 
-### Generate a Single Name
+### Interactive Mode (Default)
+
+By default, `dir-init` runs in interactive mode, guiding you through creating directories with a beautiful TUI:
+
+```bash
+# Simply run dir-init (interactive mode is default)
+dir-init
+
+# Or explicitly enable interactive mode
+dir-init --interactive
+# or
+dir-init -i
+```
+
+**Interactive Flow:**
+1. **Select Frontend**: Choose from React, Vue, Angular, Next.js, Svelte, etc. (or add custom)
+2. **Select Backend**: Choose from Node.js, Python, Go, Java, etc. (or add custom)
+3. **Select Category**: Choose from food, animals, pop, silly, dev, or all
+4. **Select Suffix Type**: Alphabetic, Numeric, Mixed, or Timestamp
+5. **Enter Count**: How many directories to create (1-10)
+
+**Example Output:**
+```
+========
+dir-init
+========
+Step 1/4: Select Frontend >> rct
+Step 2/4: Select Backend >> node
+Step 3/4: Select Category >> food
+Step 4/4: Select Suffix Type >> mixed
+How many directories to create? <default 1, enter number to change> 2
+
+rct-node-pizza-a1b2 created!
+rct-node-burger-x9y3 created!
+```
+
+**Interactive Mode Flags:**
+- `--no-interactive`: Skip interactive mode and show help
+- `--interactive` or `-i`: Explicitly enable interactive mode (overrides `--no-interactive`)
+
+### Non-Interactive Mode: Generate Names Only
+
+Use the `generate` command to generate names without creating directories:
+
 ```bash
 # Generate from any category
 ./dir-init generate -c tech
@@ -93,7 +149,7 @@ If you get "command not found", restart your terminal or run `source ~/.zshrc` (
 
 ### Generate Multiple Names
 ```bash
-# Generate 5 tech names
+# Generate 5 tech names (does not create directories)
 ./dir-init generate -c tech -n 5
 # Output:
 # Generated folder names:
@@ -159,42 +215,158 @@ If you get "command not found", restart your terminal or run `source ~/.zshrc` (
 ./dir-init generate -c tech -S 12345  # Same result
 ```
 
+## Config Management
+
+`dir-init` uses a YAML configuration file at `~/.dir-init/config.yaml` to store your custom frontends, backends, tech stacks, frameworks, and category words.
+
+### Initialize Config
+
+```bash
+# Create config file with default values
+dir-init config init
+```
+
+### View Config
+
+```bash
+# Show config file path
+dir-init config path
+
+# Show all loaded collections
+dir-init config show
+
+# Validate config syntax
+dir-init config validate
+```
+
+### Edit Config
+
+```bash
+# Open config in your default editor ($EDITOR or vim)
+dir-init config edit
+```
+
+### Add Items
+
+```bash
+# Add a tech stack
+dir-init config add techstack <code> <description>
+# Example: dir-init config add techstack fejs "Frontend JS"
+
+# Add a framework
+dir-init config add framework <techstack> <code> <description>
+# Example: dir-init config add framework fejs react "React Framework"
+
+# Add a word to a category
+dir-init config add word <category> <word>
+# Example: dir-init config add word food taco
+```
+
+### Remove Items
+
+```bash
+# Remove a tech stack
+dir-init config remove techstack <code>
+# Example: dir-init config remove techstack fejs
+
+# Remove a framework
+dir-init config remove framework <techstack> <code>
+# Example: dir-init config remove framework fejs react
+
+# Remove a word from a category
+dir-init config remove word <category> <word>
+# Example: dir-init config remove word food taco
+```
+
+### Config Structure
+
+The config file structure:
+
+```yaml
+# dir-init Custom Collections
+frontends:
+  - code: rct
+    description: React
+  - code: vue
+    description: Vue.js
+  # ... more frontends
+
+backends:
+  - code: node
+    description: Node.js
+  - code: py
+    description: Python
+  # ... more backends
+
+categories:
+  food:
+    - pizza
+    - burger
+    - taco
+    # ... more words
+  animals:
+    - penguin
+    - koala
+    # ... more words
+  # ... more categories
+```
+
 ## Categories
 
 ### Tech & Programming
 Technology and programming related words including languages, frameworks, tools, and concepts.
 
-**Examples**: `code-1234`, `debug-abc2`, `api-v2beta`
+**Examples**: 
+- Generate command: `code-1234`, `debug-abc2`, `api-v2beta`
+- Interactive mode: `rct-node-code-a1b2`, `vue-py-debug-x9y3`
 
 ### Food & Cooking
 Food, cooking, and beverage related words for delicious folder names.
 
-**Examples**: `pizza-fresh`, `burger-delicious`, `taco-hot`
+**Examples**: 
+- Generate command: `pizza-fresh`, `burger-delicious`, `taco-hot`
+- Interactive mode: `rct-node-pizza-a1b2`, `vue-py-burger-x9y3`
 
 ### Animals & Nature
 Animals and nature related words for cute and wild folder names.
 
-**Examples**: `penguin-cute`, `koala-gentle`, `dolphin-smart`
+**Examples**: 
+- Generate command: `penguin-cute`, `koala-gentle`, `dolphin-smart`
+- Interactive mode: `rct-node-penguin-a1b2`, `vue-py-koala-x9y3`
 
 ### Pop Culture
 Pop culture, fantasy, and creative arts related words.
 
-**Examples**: `ninja-epic`, `wizard-magical`, `knight-brave`
+**Examples**: 
+- Generate command: `ninja-epic`, `wizard-magical`, `knight-brave`
+- Interactive mode: `rct-node-ninja-a1b2`, `vue-py-wizard-x9y3`
 
 ### Silly & Absurd
 Silly, funny, and absurd words for humorous folder names.
 
-**Examples**: `potato-silly`, `banana-goofy`, `unicorn-odd`
+**Examples**: 
+- Generate command: `potato-silly`, `banana-goofy`, `unicorn-odd`
+- Interactive mode: `rct-node-potato-a1b2`, `vue-py-banana-x9y3`
 
 ### Developer-related
 Development tools, programming languages, and devops related words.
 
-**Examples**: `github-v1`, `docker-prod`, `react-ui`
+**Examples**: 
+- Generate command: `github-v1`, `docker-prod`, `react-ui`
+- Interactive mode: `rct-node-github-a1b2`, `vue-py-docker-x9y3`
 
 ## Command Reference
 
+### Root Command
+
+**Default Behavior**: Running `dir-init` without arguments starts interactive mode, which creates directories.
+
+**Flags:**
+- `--no-interactive`: Skip interactive mode and show help instead
+- `--interactive, -i`: Explicitly enable interactive mode (overrides `--no-interactive`)
+
 ### `generate`
-Generate funny folder names.
+Generate funny folder names (does not create directories, only outputs names).
 
 **Flags:**
 - `-c, --category`: Category to use (tech, food, animals, pop, silly, dev, all)
@@ -214,29 +386,54 @@ Show example folder names for demonstration.
 - `-c, --category`: Show examples for specific category
 - `-n, --count`: Number of examples to show
 
+### `config`
+Manage custom word collections and configuration.
+
+**Subcommands:**
+- `config init`: Initialize config file with default values
+- `config path`: Show config file path
+- `config show`: Display all loaded collections
+- `config validate`: Validate config file syntax
+- `config edit`: Open config in default editor
+
+**Add Subcommands:**
+- `config add techstack <code> <description>`: Add a tech stack
+- `config add framework <techstack> <code> <description>`: Add a framework
+- `config add word <category> <word>`: Add a word to a category
+
+**Remove Subcommands:**
+- `config remove techstack <code>`: Remove a tech stack
+- `config remove framework <techstack> <code>`: Remove a framework
+- `config remove word <category> <word>`: Remove a word from a category
+
 ## Development
 
 ### Project Structure
 ```
 dir-init/
 ├── cmd/                    # CLI commands
-│   ├── main.go            # Main entry point
-│   ├── root.go            # Root command
-│   ├── generate.go        # Generate command
+│   ├── root.go            # Root command and flags
+│   ├── generate.go        # Generate command (non-interactive)
 │   ├── categories.go      # Categories command
-│   └── examples.go        # Examples command
+│   ├── examples.go        # Examples command
+│   ├── config.go          # Config management commands
+│   ├── interactive.go     # Interactive TUI mode
+│   ├── interactive_helpers.go  # Interactive mode helpers
+│   └── tui/               # Terminal UI components
+│       └── models/
+│           └── selector.go  # TUI selector model
 ├── internal/
-│   ├── categories/        # Category word lists
-│   │   ├── tech.go
-│   │   ├── food.go
-│   │   ├── animals.go
-│   │   ├── pop.go
-│   │   ├── silly.go
-│   │   └── dev.go
-│   └── generator/         # Name generation logic
-│       └── generator.go
+│   ├── config/            # Configuration management
+│   │   ├── loader.go      # Config loading and saving
+│   │   ├── save_helpers.go  # Helper functions for saving
+│   │   └── types.go       # Config type definitions
+│   ├── generator/         # Name generation logic
+│   │   └── generator.go  # Generator implementation
+│   └── utils/            # Utility functions
+│       └── filesystem.go  # Filesystem utilities
 ├── main.go               # Application entry point
 ├── go.mod                # Go module
+├── go.sum                # Go module checksums
 └── README.md             # This file
 ```
 
