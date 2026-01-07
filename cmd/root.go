@@ -10,6 +10,7 @@ import (
 var (
 	enableInteractive bool
 	avoidInteractive  bool
+	verboseMode       bool
 )
 
 var rootCmd = &cobra.Command{
@@ -35,7 +36,7 @@ Perfect for adding some humor to your development workflow!`,
 	Version: "1.0.0",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !avoidInteractive {
-			interactive()
+			interactive(verboseMode)
 		} else {
 			cmd.Help()
 		}
@@ -45,6 +46,7 @@ Perfect for adding some humor to your development workflow!`,
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&avoidInteractive, "no-interactive", false, "Skip interactive mode")
 	rootCmd.PersistentFlags().BoolVarP(&enableInteractive, "interactive", "i", false, "Start interactive mode (overrides --no-interactive)")
+	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "V", false, "Enable verbose logging")
 }
 
 func Execute() {

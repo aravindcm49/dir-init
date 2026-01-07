@@ -126,26 +126,31 @@ func (m SelectorModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, textinput.Blink
 		}
 
-	case tea.KeyUp:
-		if m.cursor > 0 {
-			m.cursor--
-		}
-
-	case tea.KeyDown:
+	case tea.KeyUp, tea.KeyRight:
+		// Increment cursor (move selection forward)
 		if m.cursor < len(m.filtered)-1 {
 			m.cursor++
 		}
 
+	case tea.KeyDown, tea.KeyLeft:
+		// Decrement cursor (move selection backward)
+		if m.cursor > 0 {
+			m.cursor--
+		}
+
 	default:
-		// Update search input
-		var cmd tea.Cmd
-		m.searchInput, cmd = m.searchInput.Update(msg)
+		// Only treat as search input if it's a printable character
+		if msg.Type == tea.KeyRunes {
+			// Update search input
+			var cmd tea.Cmd
+			m.searchInput, cmd = m.searchInput.Update(msg)
 
-		// Filter items
-		m.filterItems()
-		m.cursor = 0
+			// Filter items
+			m.filterItems()
+			m.cursor = 0
 
-		return m, cmd
+			return m, cmd
+		}
 	}
 
 	return m, nil

@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/aravindcm49/dir-init/cmd/tui/models"
@@ -11,12 +11,16 @@ import (
 	"github.com/aravindcm49/dir-init/internal/generator"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fatih/color" // This line is kept as removing it would cause compilation errors due to its usage later in the file.
-	"github.com/manifoldco/promptui"
+	"golang.org/x/term"
 )
 
-func interactive() {
+func interactive(verbose bool) {
 	green := color.New(color.FgGreen).Add(color.Bold)
 	yellow := color.New(color.FgYellow).Add(color.Bold)
+
+	if verbose {
+		fmt.Println("[verbose] Starting interactive mode")
+	}
 
 	// Clear screen once at start
 	// fmt.Print("\033[H\033[2J")
@@ -53,6 +57,10 @@ func interactive() {
 
 	selectedFrontendCode := selectedFrontend.Code
 
+	if verbose {
+		fmt.Printf("[verbose] Selected frontend: %s\n", selectedFrontendCode)
+	}
+
 	// Reprint full line with selection
 	fmt.Print("\033[A\033[K") // Move up and clear line
 	fmt.Printf("Step 1/4: Select Frontend >> %s\n", selectedFrontendCode)
@@ -84,6 +92,10 @@ func interactive() {
 	}
 
 	selectedBackendCode := selectedBackend.Code
+
+	if verbose {
+		fmt.Printf("[verbose] Selected backend: %s\n", selectedBackendCode)
+	}
 
 	// Reprint full line with selection
 	fmt.Print("\033[A\033[K") // Move up and clear line
@@ -129,6 +141,10 @@ func interactive() {
 	}
 
 	selectedCategory := selectedCat.Code
+	if verbose {
+		fmt.Printf("[verbose] Selected category: %s\n", selectedCategory)
+	}
+
 	var customWord string
 	var useCustomWord bool
 
@@ -186,40 +202,23 @@ func interactive() {
 		suffixType = generator.SuffixTimestamp
 	}
 
+	if verbose {
+		fmt.Printf("[verbose] Selected suffix type: %s\n", selectedSuf.Code)
+	}
+
 	// Reprint full line with selection
 	fmt.Print("\033[A\033[K") // Move up and clear line
 	fmt.Printf("Step 4/4: Select Suffix Type >> %s\n", selectedSuf.Code)
 
 	grey := color.New(color.FgHiBlack)
 
-	countPrompt := promptui.Prompt{
-		Label:   fmt.Sprintf("How many directories to create? %s", grey.Sprint("<default 1, enter number to change>")),
-		Default: "1",
-		Validate: func(input string) error {
-			count, err := strconv.Atoi(input)
-			if err != nil || count < 1 || count > 10 {
-				return fmt.Errorf("please enter a number between 1 and 10")
-			}
-			return nil
-		},
-		Templates: &promptui.PromptTemplates{
-			Prompt:  "{{ . }} ",
-			Valid:   "{{ . }} ",
-			Invalid: "{{ . }} ",
-			Success: "{{ . }} ",
-		},
-	}
+	// Arrow key controlled count input
+	fmt.Printf("\rHow many directories to create? %s", grey.Sprint("<use ↑ to increase, ↓ to decrease, Enter to confirm>: "))
+	count := readArrowCount(1, 10)
+	fmt.Printf("\rHow many directories to create? %d\n", count)
 
-	countStr, err := countPrompt.Run()
-	if err != nil {
-		fmt.Printf("Error entering count: %v\n", err)
-		return
-	}
-
-	count, err := strconv.Atoi(countStr)
-	if err != nil {
-		fmt.Printf("Error parsing count: %v\n", err)
-		return
+	if verbose {
+		fmt.Printf("[verbose] Selected count: %d\n", count)
 	}
 
 	// Generate and create directories
@@ -247,6 +246,10 @@ func interactive() {
 		if err != nil {
 			fmt.Printf("❌ Failed to create directory '%s': %v\n", name, err)
 			continue
+		}
+
+		if verbose {
+			fmt.Printf("[verbose] Created directory: %s\n", name)
 		}
 
 		green.Printf("%s created!\n", name)
@@ -303,5 +306,49 @@ func generateSimpleSuffix(suffixType generator.SuffixType) string {
 		return fmt.Sprintf("%d", os.Getpid()%10000)
 	default:
 		return "a1b2"
+	}
+}
+
+// readArrowCount reads arrow keys to increment/decrement a count value
+func readArrowCount(min, max int) int {
+	// Save current terminal settings
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println("Failed to set raw mode:", err)
+		return min
+	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
+
+	scanner := bufio.NewReader(os.Stdin)
+	count := min
+
+	for {
+		// Read first byte
+		b, err := scanner.ReadByte()
+		if err != nil {
+			return count
+		}
+
+		// Check for escape sequence (arrow keys start with 27)
+		if b == 27 {
+			// Read next two bytes of escape sequence
+			b2, _ := scanner.ReadByte()
+			b3, _ := scanner.ReadByte()
+
+			// \x1b[A = Up, \x1b[B = Down
+			if b2 == 91 && b3 == 65 { // Up
+				if count < max {
+					count++
+				}
+				fmt.Printf("\r\x1b[KHow many directories to create? %d  ", count)
+			} else if b2 == 91 && b3 == 66 { // Down
+				if count > min {
+					count--
+				}
+				fmt.Printf("\r\x1b[KHow many directories to create? %d  ", count)
+			}
+		} else if b == 13 || b == 10 { // Enter key
+			return count
+		}
 	}
 }
