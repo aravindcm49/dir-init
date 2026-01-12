@@ -139,8 +139,10 @@ func (m SelectorModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	default:
-		// Only treat as search input if it's a printable character
-		if msg.Type == tea.KeyRunes {
+		// Pass through textinput editing keys (backspace, delete, home, end)
+		// but NOT arrow keys (those are handled above for navigation)
+		switch msg.Type {
+		case tea.KeyBackspace, tea.KeyDelete, tea.KeyHome, tea.KeyEnd, tea.KeyRunes:
 			// Update search input
 			var cmd tea.Cmd
 			m.searchInput, cmd = m.searchInput.Update(msg)
