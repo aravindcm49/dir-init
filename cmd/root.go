@@ -20,10 +20,11 @@ var rootCmd = &cobra.Command{
 with customizable categories and alphanumeric suffixes.
 
 Interactive Mode (default):
-- Tech stack selection (fejs, bepy, etc.)
-- Framework selection
-- Category selection (food, animals, pop, silly, dev)
-- Suffix type selection
+ - Nickname input
+ - Tech stack selection
+ - Category selection (food, animals, pop, silly, dev)
+ - Suffix type selection
+
 
 It comes with multiple categories of funny names including:
 - Food & Cooking
@@ -32,7 +33,9 @@ It comes with multiple categories of funny names including:
 - Silly & Absurd
 - Developer-related
 
-Perfect for adding some humor to your development workflow!`,
+Perfect for adding some humor to your development workflow!
+
+Format: {nickname}-{techstack}-{categoryword}-{suffix}`,
 	Version: "1.0.0",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !avoidInteractive {

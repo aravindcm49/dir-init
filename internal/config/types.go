@@ -12,25 +12,11 @@ type Framework struct {
 	Description string `yaml:"description"`
 }
 
-// Frontend represents a frontend technology configuration
-type Frontend struct {
-	Code        string `yaml:"code"`
-	Description string `yaml:"description"`
-}
-
-// Backend represents a backend technology configuration
-type Backend struct {
-	Code        string `yaml:"code"`
-	Description string `yaml:"description"`
-}
-
 // Config represents the user's custom configuration
 type Config struct {
-	TechStacks []TechStack            `yaml:"tech_stacks,omitempty"`
+	TechStacks []TechStack            `yaml:"tech-stacks,omitempty"`
 	Frameworks map[string][]Framework `yaml:"frameworks,omitempty"`
 	Categories map[string][]string    `yaml:"categories,omitempty"`
-	Frontends  []Frontend             `yaml:"frontends,omitempty"`
-	Backends   []Backend              `yaml:"backends,omitempty"`
 }
 
 // NewConfig creates a new empty config
@@ -39,7 +25,5 @@ func NewConfig() *Config {
 		TechStacks: []TechStack{},
 		Frameworks: make(map[string][]Framework),
 		Categories: make(map[string][]string),
-		Frontends:  []Frontend{},
-		Backends:   []Backend{},
 	}
 }

@@ -35,6 +35,7 @@ type SelectorModel struct {
 	cursor      int
 	selected    *Item
 	mode        Mode
+	allowSave   bool
 
 	// Custom input state
 	customCode string
@@ -67,7 +68,17 @@ func NewSelector(title string, items []Item) SelectorModel {
 		filtered:    items,
 		mode:        ModeSearch,
 		cursor:      0,
+		allowSave:   true,
 	}
+}
+
+// NewInput creates a selector model that behaves like an input prompt.
+// It does not show save hints and disables Ctrl+S.
+func NewInput(title, placeholder string) SelectorModel {
+	m := NewSelector(title, []Item{})
+	m.searchInput.Placeholder = placeholder
+	m.allowSave = false
+	return m
 }
 
 // Init initializes the model
@@ -117,7 +128,7 @@ func (m SelectorModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.KeyCtrlS:
-		if len(m.filtered) == 0 && m.searchInput.Value() != "" {
+		if m.allowSave && len(m.filtered) == 0 && m.searchInput.Value() != "" {
 			// No matches - create custom and save to config
 			m.customCode = m.searchInput.Value()
 			m.saveChoice = 1
@@ -172,6 +183,9 @@ func (m SelectorModel) updateCustomConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 		return m, tea.Quit
 
 	case tea.KeyCtrlS:
+		if !m.allowSave {
+			return m, nil
+		}
 		// Ctrl+S = Save to config - ask for description
 		m.saveChoice = 1
 		m.mode = ModeCustomInput
@@ -237,7 +251,11 @@ func (m SelectorModel) View() string {
 
 	// Title
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("220"))
-	s.WriteString(titleStyle.Render(m.title) + "\n\n")
+	if m.title != "" {
+		s.WriteString(titleStyle.Render(m.title) + "\n\n")
+	} else {
+		s.WriteString("\n")
+	}
 
 	switch m.mode {
 	case ModeSearch:
@@ -258,10 +276,14 @@ func (m SelectorModel) viewSearch() string {
 	s.WriteString(m.searchInput.View() + "\n\n")
 
 	// Filtered items
-	if len(m.filtered) == 0 {
+	if len(m.filtered) == 0 && len(m.allItems) > 0 {
 		hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 		if m.searchInput.Value() != "" {
-			s.WriteString(hintStyle.Render("No matches found. Press Enter = use once | Ctrl+S = save to config\n"))
+			hint := "No matches found. Press Enter = use once\n"
+			if m.allowSave {
+				hint = "No matches found. Press Enter = use once | Ctrl+S = save to config\n"
+			}
+			s.WriteString(hintStyle.Render(hint))
 		}
 	} else {
 		for i, item := range m.filtered {
@@ -284,7 +306,11 @@ func (m SelectorModel) viewCustomConfirm() string {
 
 	s.WriteString(fmt.Sprintf("Create '%s'?\n", m.customCode))
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	s.WriteString(hintStyle.Render("Press Enter = use once | Ctrl+S = save to config\n"))
+	hint := "Press Enter = use once\n"
+	if m.allowSave {
+		hint = "Press Enter = use once | Ctrl+S = save to config\n"
+	}
+	s.WriteString(hintStyle.Render(hint))
 
 	return s.String()
 }

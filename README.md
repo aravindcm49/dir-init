@@ -17,7 +17,7 @@ dir-init
 - **Interactive TUI Mode** — Step-by-step guided directory creation
 - **6 Fun Categories** — Tech, Food, Animals, Pop Culture, Silly, Developer
 - **Flexible Suffixes** — Alpha, numeric, mixed, or timestamp
-- **YAML Config** — Customize frontends, backends, and category words
+- **YAML Config** — Customize tech stacks and category words
 - **Multiple Outputs** — Plain text, JSON, colored terminal
 
 ## Example
@@ -26,13 +26,15 @@ dir-init
 ========
 dir-init
 ========
-Step 1/4: Select Frontend >> rct
-Step 2/4: Select Backend >> node
+Step 1/4: Enter Nickname >> myapp
+Step 2/4: Select Tech Stack >> node
 Step 3/4: Select Category >> food
 Step 4/4: Select Suffix Type >> mixed
 
-rct-node-pizza-a1b2 created!
+myapp-node-pizza-a1b2 created!
 ```
+
+**Format**: `{nickname}-{techstack}-{categoryword}-{suffix}`
 
 ## Shell Helper (Recommended)
 

@@ -1,6 +1,6 @@
 # Config Management
 
-`dir-init` uses a YAML configuration file at `~/.dir-init/config.yaml` to store your custom frontends, backends, tech stacks, frameworks, and category words.
+`dir-init` uses a YAML configuration file at `~/.dir-init/config-v2.yaml` to store your custom tech stacks and category words. Nicknames are entered during interactive mode and not saved to config.
 
 ## Initialize Config
 
@@ -34,11 +34,7 @@ dir-init config edit
 ```bash
 # Add a tech stack
 dir-init config add techstack <code> <description>
-# Example: dir-init config add techstack fejs "Frontend JS"
-
-# Add a framework
-dir-init config add framework <techstack> <code> <description>
-# Example: dir-init config add framework fejs react "React Framework"
+# Example: dir-init config add techstack react "React"
 
 # Add a word to a category
 dir-init config add word <category> <word>
@@ -50,11 +46,7 @@ dir-init config add word <category> <word>
 ```bash
 # Remove a tech stack
 dir-init config remove techstack <code>
-# Example: dir-init config remove techstack fejs
-
-# Remove a framework
-dir-init config remove framework <techstack> <code>
-# Example: dir-init config remove framework fejs react
+# Example: dir-init config remove techstack react
 
 # Remove a word from a category
 dir-init config remove word <category> <word>
@@ -67,19 +59,14 @@ The config file structure:
 
 ```yaml
 # dir-init Custom Collections
-frontends:
-  - code: rct
+tech-stacks:
+  - code: react
     description: React
-  - code: vue
-    description: Vue.js
-  # ... more frontends
-
-backends:
   - code: node
     description: Node.js
-  - code: py
+  - code: python
     description: Python
-  # ... more backends
+  # ... more tech stacks
 
 categories:
   food:
@@ -108,10 +95,8 @@ Manage custom word collections and configuration.
 
 **Add Subcommands:**
 - `config add techstack <code> <description>`: Add a tech stack
-- `config add framework <techstack> <code> <description>`: Add a framework
 - `config add word <category> <word>`: Add a word to a category
 
 **Remove Subcommands:**
 - `config remove techstack <code>`: Remove a tech stack
-- `config remove framework <techstack> <code>`: Remove a framework
 - `config remove word <category> <word>`: Remove a word from a category

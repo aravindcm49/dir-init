@@ -16,15 +16,29 @@ dir-init -i
 
 ### Interactive Flow
 
-1. **Select Frontend**: Choose from React, Vue, Angular, Next.js, Svelte, etc. (or add custom)
-2. **Select Backend**: Choose from Node.js, Python, Go, Java, etc. (or add custom)
-3. **Select Category**: Choose from food, animals, pop, silly, dev, or all
+1. **Enter Nickname**: Type a custom nickname (e.g., `myapp`, `project`)
+2. **Select Tech Stack**: Choose from React, Node, Python, Go, etc. (or add custom)
+3. **Select Category**: Choose from food, animals, silly, dev, or all
 4. **Select Suffix Type**: Alphabetic, Numeric, Mixed, or Timestamp
-5. **Enter Count**: How many directories to create (1-10)
+5. **Enter Count**: How many directories to create (1-10, use ↑/k to increase, ↓/j to decrease)
 
 ### Example Output
 
 ```
+========
+dir-init
+========
+Step 1/4: Enter Nickname >> myapp
+Step 2/4: Select Tech Stack >> node
+Step 3/4: Select Category >> food
+Step 4/4: Select Suffix Type >> mixed
+How many directories to create? <use ↑/k to increase, ↓/j to decrease, Enter to confirm>: 2
+
+myapp-node-pizza-a1b2 created!
+myapp-node-burger-x9y3 created!
+```
+
+**Format**: `{nickname}-{techstack}-{categoryword}-{suffix}`
 ========
 dir-init
 ========

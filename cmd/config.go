@@ -46,6 +46,7 @@ var configInitCmd = &cobra.Command{
 			return
 		}
 		color.Green("✓ Config file created at: %s\n", config.GetConfigPath())
+		fmt.Println("  Format: {nickname}-{techstack}-{categoryword}-{suffix}")
 	},
 }
 
@@ -100,7 +101,7 @@ var configShowCmd = &cobra.Command{
 			}
 		}
 
-		if len(cfg.TechStacks) == 0 && len(cfg.Frameworks) == 0 && len(cfg.Categories) == 0 {
+		if len(cfg.TechStacks) == 0 && len(cfg.Categories) == 0 {
 			color.Yellow("No custom collections found. Run 'dir-init config init' to create an example config.\n")
 		}
 	},

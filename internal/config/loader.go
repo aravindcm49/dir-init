@@ -17,9 +17,9 @@ var (
 func init() {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		configPath = ".dir-init/config.yaml"
+		configPath = ".dir-init/config-v2.yaml"
 	} else {
-		configPath = filepath.Join(home, ".dir-init", "config.yaml")
+		configPath = filepath.Join(home, ".dir-init", "config-v2.yaml")
 	}
 }
 
@@ -186,7 +186,7 @@ func InitConfig() error {
 
 	// Create default config with all values
 	defaultConfig := &Config{
-		Frontends: []Frontend{
+		TechStacks: []TechStack{
 			{Code: "rct", Description: "React"},
 			{Code: "vue", Description: "Vue.js"},
 			{Code: "ng", Description: "Angular"},
@@ -200,9 +200,6 @@ func InitConfig() error {
 			{Code: "astro", Description: "Astro"},
 			{Code: "remix", Description: "Remix"},
 			{Code: "html", Description: "HTML/CSS/JS"},
-			{Code: "none", Description: "No Frontend"},
-		},
-		Backends: []Backend{
 			{Code: "node", Description: "Node.js"},
 			{Code: "py", Description: "Python"},
 			{Code: "go", Description: "Go"},
@@ -221,7 +218,7 @@ func InitConfig() error {
 			{Code: "nest", Description: "NestJS"},
 			{Code: "rails", Description: "Rails"},
 			{Code: "laravel", Description: "Laravel"},
-			{Code: "none", Description: "No Backend"},
+			{Code: "none", Description: "None"},
 		},
 		Categories: map[string][]string{
 			"food": {

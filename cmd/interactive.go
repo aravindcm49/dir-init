@@ -29,77 +29,72 @@ func interactive(verbose bool) {
 	fmt.Println("dir-init")
 	fmt.Println("========")
 
-	// Step 1: Frontend Selection
-	yellow.Printf("Step 1/4: Select Frontend\n")
+	// Step 1: Nickname Input
+	yellow.Printf("Step 1/4: Enter Nickname\n")
 
-	frontendItems := buildFrontendItems()
-	frontendModel := models.NewSelector("", frontendItems)
+	nicknameModel := models.NewInput("", "Let's start with a nick name!")
 
-	p := tea.NewProgram(frontendModel)
+	p := tea.NewProgram(nicknameModel)
 	finalModel, err := p.Run()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	m := finalModel.(models.SelectorModel)
-	selectedFrontend := m.GetSelected()
-
-	if selectedFrontend == nil {
+	nm := finalModel.(models.SelectorModel)
+	selectedNicknameItem := nm.GetSelected()
+	if selectedNicknameItem == nil {
 		return
 	}
 
-	if selectedFrontend.IsCustom && m.ShouldSave() {
-		if err := config.SaveFrontend(selectedFrontend.Code, selectedFrontend.Description); err != nil {
-			// Silent fail
-		}
+	selectedNickname := strings.TrimSpace(selectedNicknameItem.Code)
+	if selectedNickname == "" {
+		return
 	}
 
-	selectedFrontendCode := selectedFrontend.Code
-
 	if verbose {
-		fmt.Printf("[verbose] Selected frontend: %s\n", selectedFrontendCode)
+		fmt.Printf("[verbose] Nickname: %s\n", selectedNickname)
 	}
 
 	// Reprint full line with selection
 	fmt.Print("\033[A\033[K") // Move up and clear line
-	fmt.Printf("Step 1/4: Select Frontend >> %s\n", selectedFrontendCode)
+	fmt.Printf("Step 1/4: Enter Nickname >> %s\n", selectedNickname)
 
-	// Step 2: Backend Selection
-	yellow.Printf("Step 2/4: Select Backend\n")
+	// Step 2: Tech Stack Selection
+	yellow.Printf("Step 2/4: Select Tech Stack\n")
 
-	backendItems := buildBackendItems()
-	backendModel := models.NewSelector("", backendItems)
+	techStackItems := buildTechStackItems()
+	techStackModel := models.NewSelector("", techStackItems)
 
-	p = tea.NewProgram(backendModel)
+	p = tea.NewProgram(techStackModel)
 	finalModel, err = p.Run()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	bm := finalModel.(models.SelectorModel)
-	selectedBackend := bm.GetSelected()
+	tsm := finalModel.(models.SelectorModel)
+	selectedTechStack := tsm.GetSelected()
 
-	if selectedBackend == nil {
+	if selectedTechStack == nil {
 		return
 	}
 
-	if selectedBackend.IsCustom && bm.ShouldSave() {
-		if err := config.SaveBackend(selectedBackend.Code, selectedBackend.Description); err != nil {
+	if selectedTechStack.IsCustom && tsm.ShouldSave() {
+		if err := config.SaveTechStack(selectedTechStack.Code, selectedTechStack.Description); err != nil {
 			// Silent fail
 		}
 	}
 
-	selectedBackendCode := selectedBackend.Code
+	selectedTechStackCode := selectedTechStack.Code
 
 	if verbose {
-		fmt.Printf("[verbose] Selected backend: %s\n", selectedBackendCode)
+		fmt.Printf("[verbose] Selected tech stack: %s\n", selectedTechStackCode)
 	}
 
 	// Reprint full line with selection
 	fmt.Print("\033[A\033[K") // Move up and clear line
-	fmt.Printf("Step 2/4: Select Backend >> %s\n", selectedBackendCode)
+	fmt.Printf("Step 2/4: Select Tech Stack >> %s\n", selectedTechStackCode)
 
 	// Step 3: Category Selection
 	yellow.Printf("Step 3/4: Select Category\n")
@@ -212,10 +207,11 @@ func interactive(verbose bool) {
 
 	grey := color.New(color.FgHiBlack)
 
-	// Arrow key controlled count input
-	fmt.Printf("\rHow many directories to create? %s", grey.Sprint("<use ↑ to increase, ↓ to decrease, Enter to confirm>: "))
-	count := readArrowCount(1, 10)
-	fmt.Printf("\rHow many directories to create? %d\n", count)
+	// Arrow/jk controlled count input
+	countHint := "<use ↑/k to increase, ↓/j to decrease, Enter to confirm>: "
+	countPrompt := fmt.Sprintf("How many directories to create? %s", grey.Sprint(countHint))
+	count := readArrowCount(1, 10, countPrompt)
+	fmt.Printf("\r\x1b[2KHow many directories to create? %d\n", count)
 
 	if verbose {
 		fmt.Printf("[verbose] Selected count: %d\n", count)
@@ -228,14 +224,14 @@ func interactive(verbose bool) {
 		var err error
 
 		if useCustomWord {
-			name = fmt.Sprintf("%s-%s-%s-%s", selectedFrontendCode, selectedBackendCode, customWord, generateSimpleSuffix(suffixType))
+			name = fmt.Sprintf("%s-%s-%s-%s", selectedNickname, selectedTechStackCode, customWord, generateSimpleSuffix(suffixType))
 		} else {
 			cfg, _ := config.LoadConfig()
 			genConfig := generator.DefaultConfig()
 			genConfig.Categories = cfg.Categories
 
 			gen := generator.NewGenerator(genConfig)
-			name, err = gen.GenerateEnhancedName(selectedFrontendCode, selectedBackendCode, selectedCategory, suffixType, 4)
+			name, err = gen.GenerateEnhancedName(selectedNickname, selectedTechStackCode, selectedCategory, suffixType, 4)
 			if err != nil {
 				fmt.Printf("Error generating name: %v\n", err)
 				continue
@@ -256,7 +252,7 @@ func interactive(verbose bool) {
 	}
 }
 
-func buildFrontendItems() []models.Item {
+func buildTechStackItems() []models.Item {
 	items := []models.Item{}
 
 	cfg, err := config.LoadConfig()
@@ -265,30 +261,10 @@ func buildFrontendItems() []models.Item {
 		return items
 	}
 
-	for _, fe := range cfg.Frontends {
+	for _, ts := range cfg.TechStacks {
 		items = append(items, models.Item{
-			Code:        fe.Code,
-			Description: fe.Description,
-			IsCustom:    false,
-		})
-	}
-
-	return items
-}
-
-func buildBackendItems() []models.Item {
-	items := []models.Item{}
-
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		return items
-	}
-
-	for _, be := range cfg.Backends {
-		items = append(items, models.Item{
-			Code:        be.Code,
-			Description: be.Description,
+			Code:        ts.Code,
+			Description: ts.Description,
 			IsCustom:    false,
 		})
 	}
@@ -309,8 +285,8 @@ func generateSimpleSuffix(suffixType generator.SuffixType) string {
 	}
 }
 
-// readArrowCount reads arrow keys to increment/decrement a count value
-func readArrowCount(min, max int) int {
+// readArrowCount reads arrow keys (or j/k) to increment/decrement a count value
+func readArrowCount(min, max int, prompt string) int {
 	// Save current terminal settings
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
@@ -322,6 +298,11 @@ func readArrowCount(min, max int) int {
 	scanner := bufio.NewReader(os.Stdin)
 	count := min
 
+	render := func() {
+		fmt.Printf("\r\x1b[2K%s%d", prompt, count)
+	}
+	render()
+
 	for {
 		// Read first byte
 		b, err := scanner.ReadByte()
@@ -329,8 +310,9 @@ func readArrowCount(min, max int) int {
 			return count
 		}
 
+		switch b {
 		// Check for escape sequence (arrow keys start with 27)
-		if b == 27 {
+		case 27:
 			// Read next two bytes of escape sequence
 			b2, _ := scanner.ReadByte()
 			b3, _ := scanner.ReadByte()
@@ -340,14 +322,27 @@ func readArrowCount(min, max int) int {
 				if count < max {
 					count++
 				}
-				fmt.Printf("\r\x1b[KHow many directories to create? %d  ", count)
+				render()
 			} else if b2 == 91 && b3 == 66 { // Down
 				if count > min {
 					count--
 				}
-				fmt.Printf("\r\x1b[KHow many directories to create? %d  ", count)
+				render()
 			}
-		} else if b == 13 || b == 10 { // Enter key
+
+		case 'k':
+			if count < max {
+				count++
+			}
+			render()
+
+		case 'j':
+			if count > min {
+				count--
+			}
+			render()
+
+		case 13, 10: // Enter key
 			return count
 		}
 	}
